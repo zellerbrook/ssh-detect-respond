@@ -1,0 +1,6 @@
+Nov 12 09:15:22 target-vm sshd[2145]: Failed password for invalid user admin from 192.168.56.101 port 52344 ssh2
+Nov 12 09:15:24 target-vm sshd[2145]: Failed password for invalid user admin from 192.168.56.101 port 52346 ssh2
+Nov 12 09:15:26 target-vm sshd[2147]: Failed password for zach from 192.168.56.101 port 52350 ssh2
+Nov 12 09:15:29 target-vm sshd[2149]: Failed password for root from 192.168.56.101 port 52355 ssh2
+Nov 12 09:16:02 target-vm sshd[2150]: Accepted password for zach from 192.168.56.10 port 52400 ssh2
+Nov 12 09:17:41 target-vm sudo:     zach : TTY=pts/0 ; PWD=/home/zach ; USER=root ; COMMAND=/usr/bin/systemctl restart nginx

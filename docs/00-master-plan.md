@@ -1,6 +1,6 @@
 # Cybersecurity Portfolio — Master Plan
 
-_Owner: Zach • Created 2026-07-11 • Updated 2026-07-27 (session 8) • Targets: purple team (primary) / security-awareness trainer (downstream/secondary), Chicago • Separation: 2027-06-30_
+_Owner: Zach • Created 2026-07-11 • Updated 2026-07-27 (session 8) • Targets: purple team (primary) / security-awareness trainer (downstream/secondary), $100k+, Chicago • Separation: 2027-06-30_
 
 ---
 

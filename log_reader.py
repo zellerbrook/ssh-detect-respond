@@ -1,29 +1,6 @@
-import re
 import os
 import time
-from dataclasses import dataclass
 
-@dataclass
-class AuthEvent:
-    timestamp: str
-    source_ip: str
-    username: str
-    outcome: str
-
-def parse_line(line):
-    if "Failed password" not in line and "Accepted password" not in line:
-        return None
-    source_ip = re.search(r"from (\S+)", line).group(1)
-    outcome = re.search(r"(\w+) password", line).group(1)
-    username = re.search(r"for (.+) from", line).group(1)
-    timestamp = re.search(r"^(\S+ \S+ \S+)", line).group(1)
-
-    return AuthEvent(
-        timestamp=timestamp,
-        source_ip=source_ip,
-        username=username,
-        outcome=outcome,
-    )
 
 def try_read_line(f, path):
     line = f.readline()
@@ -60,5 +37,7 @@ def follow_log(path):
 
 
 if __name__ == "__main__":
+    from events import parse_line
+
     for line in follow_log("tests/fixtures/sample_auth.log"):
         print(parse_line(line))

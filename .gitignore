@@ -1,3 +1,7 @@
 .venv/
 __pycache__/
 *.pyc
+authlogs.tar.gz
+logs/
+authlogs.tar.gz
+logs/

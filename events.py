@@ -35,10 +35,16 @@ class AuthEvent:
 
 IP = r"([0-9]{1,3}(?:\.[0-9]{1,3}){3})"
 
+# Everything after "sshd[<pid>]: " is the message sshd itself wrote. Isolating
+# it means a non-sshd line (sudo, cron, su) can never reach the matchers no
+# matter what text it happens to contain -- a sudo COMMAND= field logging a
+# grep for "Failed password" is a real example.
+SSHD_BODY = re.compile(r"sshd\[\d+\]:\s+(.*?)\s*$")
+
 # rsyslog collapses identical consecutive lines into a summary. The original
 # message survives inside the brackets, so we unwrap it and carry N forward
 # as a multiplier rather than losing 10,950 attempts.
-REPEATED_RE = re.compile(r"message repeated (\d+) times: \[ (.+)\]\s*$")
+REPEATED_RE = re.compile(r"^message repeated (\d+) times: \[ (.+)\]\s*$")
 
 # Order matters: first match wins. Every pattern captures the same three
 # groups -- (invalid-flag, username, ip) -- so one handler serves them all.
@@ -82,13 +88,23 @@ def parse_timestamp(line, now=None):
 
 def parse_line(line, now=None):
     """Turn one log line into an AuthEvent, or None if it isn't one."""
-    # Unwrap a collapsed repeat first, so the inner message goes through the
-    # normal matchers and we keep the multiplier.
-    rep = REPEATED_RE.search(line)
-    multiplier, body = (int(rep.group(1)), rep.group(2)) if rep else (1, line)
+    # Narrow to what sshd actually wrote before looking at content. Anything
+    # outside this -- other daemons, the syslog prefix -- is off limits.
+    prefix = SSHD_BODY.search(line)
+    if prefix is None:
+        return None
+    body = prefix.group(1)
+
+    # Unwrap a collapsed repeat, so the inner message goes through the normal
+    # matchers and we keep the multiplier.
+    rep = REPEATED_RE.match(body)
+    multiplier, body = (int(rep.group(1)), rep.group(2)) if rep else (1, body)
 
     for kind, pattern in MATCHERS:
-        m = pattern.search(body)
+        # .match() anchors at position 0; .search() finds the pattern anywhere,
+        # including inside the username sshd echoes back at an attacker. That
+        # let a crafted username forge the source IP of a detection.
+        m = pattern.match(body)
         if not m:
             continue
         ts = parse_timestamp(line, now=now)   # timestamp comes from the OUTER line

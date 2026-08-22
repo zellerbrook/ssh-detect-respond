@@ -12,6 +12,8 @@ _Applies to every project in the portfolio, not just the flagship. Load this int
 
 **Lifecycle per project:** write on CachyOS → test in the VM lab → deploy to the server. Git is the transport between all three (commit, push, pull to run) — no zip shuffling.
 
+> **Status (2026-08-21):** VirtualBox and several guests exist, but the dedicated Debian/Ubuntu **target guest is not built yet**. Treat it as a prerequisite for the SSH detector's Milestone 5 (firewall response), not as current infrastructure. Match the guest's release to `zellerbrook` (check `/etc/os-release` and `systemctl is-active rsyslog` on the server first) — the server produces RFC3339 `auth.log` via rsyslog, and a journald-only guest would have no file to tail. Use a **host-only adapter** and give the guest a hostname distinct from `zellerbrook` so the two auth logs are never confusable side by side. Detection-only milestones (3 and 4) are safe to develop directly against `zellerbrook`; anything that writes firewall rules is not. `zellerbrook` is a MacBook with keyboard and screen attached, so a self-lockout is physically recoverable — annoying, not fatal.
+
 ## Git strategy — local first, Forgejo deferred, GitHub for reach
 
 - **`origin` = GitHub.** Forgejo on the MacBook server is the eventual plan (self-hosted Gitea fork, private source of truth for messy WIP), but standing it up is deferred — it is not a prerequisite for building, and blocking project work on server admin was costing momentum. Revisit once the flagship is deployed.

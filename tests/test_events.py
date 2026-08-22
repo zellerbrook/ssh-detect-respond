@@ -39,3 +39,36 @@ def test_pam_noise_is_ignored():
     line = ("2026-08-02T00:00:06+00:00 h sshd[1]: pam_unix(sshd:auth): authentication "
             "failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=92.118.39.62")
     assert parse_line(line) is None
+
+def test_crafted_username_cannot_forge_a_source_ip():
+    # sshd echoes the attempted username into the log. If matchers use
+    # .search(), an attacker picks a username that looks like a whole log
+    # line and gets us to block an IP of their choosing.
+    line = ("2026-08-22T01:30:26+00:00 host sshd[1]: Invalid user "
+            "Failed password for root from 9.9.9.9 port 22 ssh2 "
+            "from 45.148.10.239 port 51234")
+    assert parse_line(line) is None
+
+
+def test_non_sshd_line_containing_log_text_is_ignored():
+    line = ("2026-08-22T01:32:05+00:00 host sudo: zach : TTY=pts/0 ; "
+            "COMMAND=/usr/bin/grep 'Failed password' /var/log/auth.log")
+    assert parse_line(line) is None
+
+
+def test_crafted_username_cannot_forge_a_source_ip():
+    # sshd echoes the attempted username into the log. With .search() matchers,
+    # an attacker picks a username that looks like a whole log line and gets us
+    # to raise a detection against an IP of their choosing.
+    line = ("2026-08-22T01:30:26+00:00 host sshd[1]: Invalid user "
+            "Failed password for root from 9.9.9.9 port 22 ssh2 "
+            "from 45.148.10.239 port 51234")
+    assert parse_line(line) is None
+
+
+def test_non_sshd_line_containing_log_text_is_ignored():
+    # a real line from zellerbrook: sudo logs the command, which contained
+    # the literal string "Failed password"
+    line = ("2026-08-22T01:32:05+00:00 host sudo: zach : TTY=pts/0 ; "
+            "COMMAND=/usr/bin/grep 'Failed password' /var/log/auth.log")
+    assert parse_line(line) is None

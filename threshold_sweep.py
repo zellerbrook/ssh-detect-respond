@@ -90,10 +90,19 @@ def run_sweep(archive_path):
     # personally attest to before publishing; see the caveat in the output.
     accepted_ips = set()
 
-    # For mean-time-to-contain: the first failed attempt we ever saw per IP.
-    # Detection.window_start is the oldest attempt still INSIDE the window,
-    # which is not the same thing once older attempts have been evicted.
-    first_fail = {}
+    # Mean-time-to-contain is measured WITHIN the burst that triggered the
+    # block: Detection.window_end - Detection.window_start.
+    #
+    # The rejected alternative was "time from the IP's first-ever failure to
+    # the block." That sounds more natural and is wrong here: a scanner that
+    # probed once in July and got blocked in August scores a TTC of weeks,
+    # which says nothing about how fast the control contains an attack. The
+    # tell was a mean of 18,520s against a median of 9s in the same cell --
+    # when mean and median disagree by three orders of magnitude, the metric
+    # is measuring something other than what you named it.
+    #
+    # Document which definition you used. An assessor may ask, and "time to
+    # contain" is ambiguous enough that both answers are defensible if stated.
 
     kind_counts = Counter()
     failure_ips = set()
@@ -125,8 +134,6 @@ def run_sweep(archive_path):
             accepted_ips.add(event.source_ip)
         elif event.kind is EventKind.FAILED_PASSWORD:
             failure_ips.add(event.source_ip)
-            if event.source_ip not in first_fail:
-                first_fail[event.source_ip] = event.timestamp
 
         for key, det in detectors.items():
             detection = det.observe(event)
@@ -136,7 +143,6 @@ def run_sweep(archive_path):
     return {
         "flagged": flagged,
         "accepted_ips": accepted_ips,
-        "first_fail": first_fail,
         "kind_counts": kind_counts,
         "failure_ips": failure_ips,
         "all_ips": all_ips,
@@ -195,10 +201,11 @@ def report(r):
             # Coverage gap: IPs that produced failures but never crossed the
             # threshold. These are the attacks this setting does not see.
             missed = len(r["failure_ips"] - set(hits))
+            # Within-burst: from the oldest attempt still in the triggering
+            # window to the attempt that crossed the threshold.
             ttcs = sorted(
-                (d.window_end - r["first_fail"][ip]).total_seconds()
-                for ip, d in hits.items()
-                if ip in r["first_fail"]
+                (d.window_end - d.window_start).total_seconds()
+                for d in hits.values()
             )
             if ttcs:
                 mean_ttc = f"{sum(ttcs) / len(ttcs):,.0f}s"

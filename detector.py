@@ -75,7 +75,7 @@ class BruteForceDetector:
         """Drop IPs with nothing left in the window. Call periodically.
 
         Without this, _hits grows for the lifetime of the process: one entry
-        per IP ever seen. 2,180 IPs over 34 days is nothing, but this runs
+        per IP ever seen. 1,914 IPs over 34 days is nothing, but this runs
         for months, and a defaultdict that only ever grows is a slow leak.
         """
         cutoff = now - self.window

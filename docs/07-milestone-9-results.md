@@ -1,95 +1,12 @@
 # Milestone 9 — Threshold Justification: Results
 
-_Run 2026-08-22 • Script: `threshold_sweep.py` • Data: `authlogs.tar.gz`_
+_Run 2026-08-22 • Script: `threshold_sweep.py` • Data: `authlogs.tar.gz` (not published; see
+Data handling, below)_
 
-**Status: numbers done and verified. Write-up not started.**
-
----
-
-## START HERE NEXT SESSION
-
-Milestone 9's analysis is complete. The only thing left is prose.
-
-**Next action:** Claude drafts §3 of `05-grc-control-mapping.md` from the
-findings below, with interviewer-defense notes attached. Zach then revises it
-into his own voice — that revision pass is what makes it defensible, not just
-authored.
-
-**Why Milestone 9 was done out of order** (this got lost once already):
-Milestones 5, 6, and 7 are all blocked behind building a dedicated
-Debian/Ubuntu target VM, which does not exist yet. Milestone 9 needs no lab
-at all. It was the only unblocked work.
-
-**The five questions the write-up has to answer:**
-
-1. What does this control do, and what kind of control is it?
-2. Why 3 failures in 600 seconds and not 10 in 60?
-3. What did the data show about false positives — and why is that number
-   nearly useless on its own?
-4. The operator's own IP got flagged. Was the detector wrong?
-5. What does this control miss?
-
-### Paste-ready prompt for the §3 writing session
-
-```
-I'm Zach — Navy musician transitioning to cybersecurity, targeting GRC.
-Internship hunting starts soon. This is a WRITING session, not a build session.
-
-THE BAR IS DESIGN LEVEL, NOT LINE LEVEL. GRC interviews ask what the control
-does, why it's tuned that way, and what it misses. I need to defend every
-design decision and its control implication.
-
-PROJECT — SSH Detect + Respond (Python). Watches SSH auth logs, detects
-brute-force patterns, auto-blocks the source IP. Framed for GRC as a detective
-+ corrective control I built, mapped, and can defend. Full context is in the
-project knowledge; read docs/07-milestone-9-results.md FIRST — it has the
-findings and a "START HERE" block.
-
-CURRENT STATE (as of 2026-08-22):
-- Done: milestones 1 (parser), 2 (rotation-safe tail), 3 (sliding-window
-  detector). All tested.
-- Milestone 9 ANALYSIS IS DONE. threshold_sweep.py runs a 20-cell grid
-  (threshold 2/3/5/10/20 x window 60/300/600/3600s) over 34 days of real
-  auth.log. Numbers verified. Results in docs/07-milestone-9-results.md.
-- Milestones 4-8 remain. 5, 6, 7 are blocked behind building a dedicated
-  Debian/Ubuntu target VM that does not exist yet.
-
-TONIGHT'S TASK: draft §3 of 05-grc-control-mapping.md — "the threshold as a
-risk decision" — from the measured findings. You draft, with interviewer-
-defense notes attached (the questions I'll be asked and the honest answers).
-I then revise it into my own voice.
-
-THE FOUR FINDINGS THAT MUST APPEAR:
-1. Only ONE successful SSH login exists in 34 days, so the false-positive
-   column has n=1. The "0.06%" figures are NOT rates and must not be
-   published as rates. State the limitation.
-2. The one false positive is ME — wrong username, 5 failures in ~115s from a
-   T-Mobile carrier IP, correct key login next day. At 3/600 the control
-   blocks me. This is simultaneously a false positive AND a correct
-   detection: the detector sees behavior, not intent. Therefore the remedy is
-   an allowlist (milestone 4), not a higher threshold.
-3. Host scoping problem: the capture came from zachellerbrook-vps, which is
-   now DECOMMISSIONED. Deployment target is the MacBook server 'zellerbrook',
-   which has no comparable data. Say so plainly; frame re-derivation after 30
-   days on the new host as continuous monitoring.
-4. Coverage gap has a number: at 3/600, 397 of 1,878 failing IPs never
-   crossed the threshold. Mean time-to-contain (within-burst) is 319s.
-
-HONEST POSITIONING: this host is effectively key-only, so the control
-delivers log hygiene and evidence generation, not credential-compromise
-prevention. Volunteering that limitation is the assessor posture.
-
-DATA HANDLING: authlogs.tar.gz is gitignored and must never be published —
-1,914 real source IPs. Publish findings, withhold raw evidence. Do NOT
-suggest synthesizing or regenerating the data; that would falsify the one
-claim that gives this artifact value.
-
-HONESTY: never be confidently wrong. NEVER assert a control ID, safeguard
-number, or framework clause from memory — say you're unsure and have me
-verify against the source document.
-
-Start by reading docs/07-milestone-9-results.md, then draft §3.
-```
+This is the derivation of the detector's default threshold. It ran out of order, ahead of
+milestones 4 through 8, because those needed a Debian target VM that didn't exist and this
+needed no lab at all. It was the only unblocked work, and it turned out to be the part worth
+doing. `SCOPE.md` covers why the rest was cut.
 
 ---
 
@@ -248,8 +165,9 @@ it, not a hand-wave.
    capture on the new host." Control tuning is environment-specific and
    requires periodic revalidation; volunteering that reads as maturity.
 
-2. **IP count.** Measured 1,914 distinct IPs (1,878 with failed passwords).
-   `detector.py` comments claim 2,180. Reconcile or update the comment.
+2. **IP count — RESOLVED.** Measured 1,914 distinct IPs (1,878 with failed
+   passwords). An earlier `detector.py` comment claimed 2,180; the comment now
+   reads 1,914 and matches the measurement.
 
 3. ~~Root SSH login enabled on the VPS.~~ **Moot** — host decommissioned.
    Do not carry into the residual-risk section; it describes a system that
@@ -297,11 +215,18 @@ change is a known fail2ban failure mode and worth an explicit check.
 
 ---
 
-## Next actions
+## What this analysis does not settle
 
-- [ ] Resolve host identity (blocks the scoping statement)
-- [ ] Provide attested known-good IPs for the exception register
-- [ ] Draft §3 of the write-up from these numbers
-- [ ] Decide `authlogs.tar.gz` git vs `.gitignore` — it contains 1,914 real
-      source IPs and one of your own carrier addresses
-- [ ] Build the Debian/Ubuntu target VM (unblocks Milestones 5–7)
+Two things stayed open when the project was scoped closed, and they are the
+first work if it ever restarts.
+
+The exception register has no attested known-good addresses in it. Finding 3
+shows why that is harder than it looks here: the only confirmed-good source in
+the capture is a mobile carrier IP, and carrier IPs rotate, so an
+address-keyed allowlist is weak on this host specifically.
+
+The threshold has not been re-derived on the deployment target. It comes from
+a decommissioned VPS with a different exposure profile, and `zellerbrook` has
+no comparable capture. Thirty days of data on the new host would be needed to
+repeat this sweep there. Until that happens, 3/600 is a defensible number from
+the wrong machine.
